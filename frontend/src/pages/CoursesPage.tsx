@@ -1,0 +1,24 @@
+import { useEffect, useMemo, useState } from 'react'
+import { BookOpen, BrainCircuit, Code2, Cpu, Database, Network, Search } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { useAuth } from '../auth/AuthContext'
+import { courses as demoCourses, lessons as demoLessons } from '../data/demo'
+import { Card, CourseIcon, EmptyState, PageHeading } from '../components/ui'
+import { catalogCourseToDemo, getPublishedCatalog, type CatalogCourse } from '../services/data'
+import type { Course } from '../types'
+
+const courseIcons = { Code2, Database, Cpu, Network, BrainCircuit }
+export default function CoursesPage() {
+  const {client,user}=useAuth()
+  const [catalog,setCatalog]=useState<Course[]>(demoCourses)
+  const [remoteCatalog,setRemoteCatalog]=useState<CatalogCourse[]>([])
+  const [catalogNotice,setCatalogNotice]=useState('')
+  const [query,setQuery]=useState('')
+  const [category,setCategory]=useState('All')
+
+  useEffect(()=>{let active=true;setCatalog(demoCourses);setRemoteCatalog([]);setCatalogNotice('');if(!client||!user)return;void getPublishedCatalog(client).then(result=>{if(!active)return;if(result.data?.length){setRemoteCatalog(result.data);setCatalog(result.data.map(catalogCourseToDemo))}else if(result.data){setCatalogNotice('No published course rows were found yet, so the sample catalog is shown.')}else setCatalogNotice(`${result.error??'Supabase course data is not available.'} The sample catalog is shown.`)}).catch(()=>{if(active)setCatalogNotice('Could not connect to Supabase course data. The sample catalog is shown.')});return()=>{active=false}},[client,user])
+
+  const categories=['All',...new Set(catalog.map(course=>course.category))]
+  const filtered=useMemo(()=>catalog.filter(c=>(category==='All'||c.category===category)&&`${c.title} ${c.description} ${c.topics.join(' ')}`.toLowerCase().includes(query.toLowerCase())),[catalog,query,category])
+  return <><PageHeading eyebrow="Course library" title="Explore courses" description="Build technical confidence and the language to talk about what you know."/><div className="mb-5 flex flex-col gap-3 md:flex-row"><label className="relative max-w-md flex-1"><Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"/><input aria-label="Search courses" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search courses or topics…" className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"/></label><div className="flex gap-2 overflow-x-auto pb-1">{categories.map(c=><button key={c} onClick={()=>setCategory(c)} className={`whitespace-nowrap rounded-xl border px-4 py-2.5 text-sm transition ${category===c?'border-indigo-600 bg-indigo-600 text-white':'border-slate-200 bg-white text-slate-600 hover:border-slate-300'}`}>{c}</button>)}</div></div>{catalogNotice&&<p role="status" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{catalogNotice}</p>}<p className="mb-4 text-xs text-slate-500">{filtered.length} courses <span className="mx-1">·</span> {remoteCatalog.length?'Published Supabase catalog':'Sample catalog'}</p>{filtered.length?<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{filtered.map(c=>{const Icon=courseIcons[c.icon as keyof typeof courseIcons]??BookOpen;const remote=remoteCatalog.find(item=>item.row.slug===c.id);const lessonSlug=remote?.lessons[0]?.slug??demoLessons.find(l=>l.courseId===c.id)?.id;return <Card key={c.id} className="flex flex-col"><div className="flex items-start gap-3"><CourseIcon icon={Icon} color={c.color}/><span className="ml-auto rounded-full bg-slate-50 px-2.5 py-1 text-xs text-slate-500">{c.duration}</span></div><p className="mt-4 text-xs font-medium text-indigo-600">{c.category}</p><h2 className="mt-1 text-lg font-semibold">{c.title}</h2><p className="mt-2 min-h-10 text-sm leading-5 text-slate-500">{c.description}</p><div className="mt-4 flex flex-wrap gap-1.5">{c.topics.slice(0,3).map(topic=><span key={topic} className="rounded-lg bg-slate-50 px-2 py-1 text-[11px] text-slate-600">{topic}</span>)}</div><div className="mt-auto pt-5"><div className="mb-2 flex items-center justify-between text-xs text-slate-500"><span>{c.progress?`${c.progress}% complete`:'Not started'}</span><span>{c.lessons} lessons</span></div><div className="h-1.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-indigo-500" style={{width:`${c.progress}%`}}/></div><Link to={`/lessons/${lessonSlug??'arrays'}`} className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-slate-900 py-2.5 text-sm font-medium text-white hover:bg-slate-700"><BookOpen size={16}/>{c.progress?'Continue learning':'View course lessons'}</Link></div></Card>})}</div>:<EmptyState title="No courses found" detail="Try a different search or category filter."/>}</>
+}

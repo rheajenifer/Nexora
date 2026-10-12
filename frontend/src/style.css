@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+:root {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html { min-width: 320px; scroll-behavior: smooth; }
+body { margin: 0; min-width: 320px; min-height: 100vh; }
+a { text-decoration: none; }
+
+@media print {
+  @page { margin: 16mm; }
+  body * { visibility: hidden !important; }
+  .resume-preview, .resume-preview * { visibility: visible !important; }
+  .resume-preview { position: absolute; inset: 0; width: 100%; min-height: 0 !important; border: 0 !important; padding: 0 !important; box-shadow: none !important; }
+  .certificate-preview, .certificate-preview * { visibility: visible !important; }
+  .certificate-preview { position: relative !important; border: 0 !important; padding: 0 !important; box-shadow: none !important; }
+  .no-print { display: none !important; }
+}
